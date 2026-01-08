@@ -19,6 +19,7 @@
             top: 0;
             left: 0;
             z-index: 1;
+            cursor: crosshair;
         }
         #controls {
             position: absolute;
@@ -133,7 +134,7 @@
 
     <div id="startOverlay">
         <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600" style="text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);">Espelho Mágico</h1>
-        <p class="text-gray-300 mb-8 text-center max-w-md">Distorções temporais, prismas de luz e reflexos fragmentados.</p>
+        <p class="text-gray-300 mb-8 text-center max-w-md">Toque o vidro para quebrá-lo.</p>
         <button id="startBtn" class="bg-purple-700 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-full shadow-lg border border-purple-500 flex items-center gap-2 transition hover:scale-105">
             <i class="fas fa-sparkles"></i> Iniciar Magia
         </button>
@@ -173,25 +174,57 @@
             </div>
         </div>
 
+        <!-- SELETOR DE PADRÃO DE QUEBRA -->
         <div class="mb-5 border-b border-gray-700 pb-4">
-            <label class="text-xs uppercase font-bold text-purple-400 mb-2 block">Efeitos Ópticos</label>
+            <label class="text-xs uppercase font-bold text-blue-400 mb-2 block">Padrão de Quebra</label>
+            <div class="flex gap-2 mb-4">
+                <button id="patMosaic" class="btn-toggle active flex-1 py-2 rounded text-sm font-medium border border-gray-600" onclick="setPattern('mosaic')">
+                    <i class="fas fa-th mr-1"></i> Mosaico
+                </button>
+                <button id="patImpact" class="btn-toggle flex-1 py-2 rounded text-sm font-medium border border-gray-600" onclick="setPattern('radial')">
+                    <i class="fas fa-bullseye mr-1"></i> Impacto
+                </button>
+            </div>
+
+            <!-- Controles do Padrão -->
+            <div class="slider-container">
+                <label>
+                    <span id="shardSizeLabel">Tamanho dos Cacos Base</span>
+                    <span id="shardSizeVal">100px</span>
+                </label>
+                <input type="range" id="shardSize" min="30" max="150" value="100" step="10">
+            </div>
+
+            <div class="slider-container">
+                <label>Intensidade Impacto <span id="impactIntVal">40%</span></label>
+                <input type="range" id="impactIntensity" min="5" max="100" value="40" class="accent-red-500">
+                <p class="text-xs text-gray-500">Subdivisão e força no centro.</p>
+            </div>
+
+            <div class="slider-container">
+                <label>Queda de Pedaços <span id="impactFallVal">0%</span></label>
+                <input type="range" id="impactFallout" min="0" max="100" value="0" class="accent-red-500">
+            </div>
+            
+            <p id="impactHint" class="text-[10px] text-red-300 italic mt-2 hidden fade-in"><i class="fas fa-info-circle mr-1"></i>Clique na tela para mudar o ponto de impacto.</p>
+        </div>
+
+        <div class="mb-5 border-b border-gray-700 pb-4">
+            <label class="text-xs uppercase font-bold text-blue-400 mb-2 block">Dinâmica</label>
             
             <div class="slider-container">
-                <label>Distorção RGB <span id="rgbVal">0</span></label>
-                <input type="range" id="rgbShift" min="0" max="20" value="0">
-                <p class="text-xs text-gray-500">Separação de cores (Glitch).</p>
+                <label>Intensidade da Quebra (Refração) <span id="distortionVal">40%</span></label>
+                <input type="range" id="distortion" min="0" max="100" value="40">
             </div>
 
             <div class="slider-container">
-                <label>Delay (Atraso) <span id="delayVal">0ms</span></label>
-                <input type="range" id="delayFrames" min="0" max="60" value="0">
-                <p class="text-xs text-gray-500">Eco temporal.</p>
+                <label>Rotação (Giro) <span id="shardSpeedVal">0</span></label>
+                <input type="range" id="shardSpeed" min="-10" max="10" value="0" step="1">
             </div>
 
             <div class="slider-container">
-                <label>Motion Blur <span id="blurVal">0%</span></label>
-                <input type="range" id="motionBlur" min="0" max="95" value="0">
-                <p class="text-xs text-gray-500">Rastro de movimento.</p>
+                <label>Espaçamento (Rachadura) <span id="gapVal">0px</span></label>
+                <input type="range" id="gap" min="0" max="10" value="0" step="0.5">
             </div>
         </div>
 
@@ -215,28 +248,22 @@
             </div>
         </div>
 
-        <div id="brokenControls" class="fade-in">
-            <label class="text-xs uppercase font-bold text-blue-400 mb-2 block">Ajustes Vidro</label>
-            <div class="slider-container">
-                <label>Tamanho dos Cacos <span id="shardSizeVal">150px</span></label>
-                <input type="range" id="shardSize" min="30" max="150" value="150" step="10">
-            </div>
-
-            <div class="slider-container">
-                <label>Intensidade da Quebra <span id="distortionVal">Alta</span></label>
-                <input type="range" id="distortion" min="0" max="100" value="40">
-            </div>
-
-            <div class="slider-container">
-                <label>Espaçamento <span id="gapVal">0px</span></label>
-                <input type="range" id="gap" min="0" max="5" value="0" step="0.5">
-            </div>
+        <div class="mb-5 border-b border-gray-700 pb-4">
+            <label class="text-xs uppercase font-bold text-purple-400 mb-2 block">Efeitos Ópticos</label>
             
-            <div class="mb-2">
-                <label class="flex items-center gap-2 cursor-pointer mt-2">
-                    <input type="checkbox" id="showIds" class="w-4 h-4 rounded accent-yellow-500">
-                    <span class="text-yellow-500 text-sm font-bold">Mostrar IDs</span>
-                </label>
+            <div class="slider-container">
+                <label>Distorção RGB <span id="rgbVal">0</span></label>
+                <input type="range" id="rgbShift" min="0" max="20" value="0">
+            </div>
+
+            <div class="slider-container">
+                <label>Delay (Atraso) <span id="delayVal">0ms</span></label>
+                <input type="range" id="delayFrames" min="0" max="60" value="0">
+            </div>
+
+            <div class="slider-container">
+                <label>Motion Blur <span id="blurVal">0%</span></label>
+                <input type="range" id="motionBlur" min="0" max="95" value="0">
             </div>
         </div>
 
@@ -254,10 +281,14 @@
                 <input type="checkbox" id="bwMode" class="w-4 h-4 rounded accent-gray-500">
                 Preto e Branco
             </label>
+             <label class="flex items-center gap-2 cursor-pointer mt-2">
+                <input type="checkbox" id="showIds" class="w-4 h-4 rounded accent-yellow-500">
+                <span class="text-yellow-500 text-sm font-bold">Mostrar IDs</span>
+            </label>
         </div>
 
         <button id="regenerateBtn" class="w-full bg-blue-700 hover:bg-blue-600 text-white py-2 rounded mt-2 text-sm font-semibold mb-2">
-            <i class="fas fa-random mr-1"></i> Quebrar Novamente
+            <i class="fas fa-random mr-1"></i> Regenerar Padrão
         </button>
 
         <button id="snapshotBtn" class="w-full bg-green-700 hover:bg-green-600 text-white py-2 rounded mt-2 text-sm font-semibold">
@@ -279,9 +310,13 @@
         
         const kaleidoExtras = document.getElementById('kaleidoExtras');
         const regenerateBtn = document.getElementById('regenerateBtn');
+        const impactHint = document.getElementById('impactHint');
 
         const btnCamera = document.getElementById('btnCamera');
         const btnUpload = document.getElementById('btnUpload');
+        
+        const patMosaicBtn = document.getElementById('patMosaic');
+        const patImpactBtn = document.getElementById('patImpact');
         
         const imageInput = document.getElementById('imageInput');
         const fileNameDisplay = document.getElementById('fileNameDisplay');
@@ -295,8 +330,14 @@
         const mirrorModeInput = document.getElementById('mirrorMode');
         const bwModeInput = document.getElementById('bwMode');
         
+        // Impact Controls
+        const impactIntensityInput = document.getElementById('impactIntensity');
+        const impactFalloutInput = document.getElementById('impactFallout');
+
         const shardSizeInput = document.getElementById('shardSize');
-        const distortionInput = document.getElementById('distortion');
+        const shardSizeLabel = document.getElementById('shardSizeLabel');
+        const distortionInput = document.getElementById('distortion'); 
+        const shardSpeedInput = document.getElementById('shardSpeed');
         const gapInput = document.getElementById('gap');
         const showIdsInput = document.getElementById('showIds'); 
 
@@ -311,13 +352,26 @@
         let currentCameraMix = 0.5;
         
         let sourceMode = 'camera'; 
+        let patternMode = 'mosaic'; 
         let uploadedImage = new Image();
         let isImageLoaded = false;
         
-        let shards = []; 
-        let currentShardSize = 150; 
-        let currentDistortion = 40;
+        // Estado de Impacto
+        let impactPos = { x: 0, y: 0 };
+        let impactIntensity = 40; 
+        let impactFallout = 0;
+
+        // Estrutura da Malha
+        let mesh = {
+            vertices: [],
+            triangles: []
+        };
+        
+        let currentShardSize = 100; 
+        let currentDistortion = 40; 
         let currentGap = 0;
+        let shardRotationSpeed = 0;
+        let meshAngle = 0;
 
         let kSegments = 0; 
         let kSpeed = 0;
@@ -346,9 +400,56 @@
         toggleControlsBtn.addEventListener('click', toggleMenu);
         closeControlsBtn.addEventListener('click', () => controlsPanel.classList.add('hidden-panel'));
 
+        // Evento de Clique no Canvas para definir impacto
+        canvas.addEventListener('mousedown', (e) => {
+            if (!isRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            impactPos.x = e.clientX - rect.left;
+            impactPos.y = e.clientY - rect.top;
+            
+            if (patternMode === 'radial') {
+                initMesh(); 
+            } else {
+                applyImpactDamage(); 
+            }
+        });
+
         startBtn.addEventListener('click', initializeApp);
         document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
-        regenerateBtn.addEventListener('click', () => generateShards(true));
+        regenerateBtn.addEventListener('click', () => initMesh(true)); 
+
+        window.setPattern = function(mode) {
+            patternMode = mode;
+            if (mode === 'mosaic') {
+                patMosaicBtn.classList.add('active');
+                patImpactBtn.classList.remove('active');
+                shardSizeLabel.innerText = "Tamanho dos Cacos";
+                impactHint.classList.add('hidden');
+            } else {
+                patMosaicBtn.classList.remove('active');
+                patImpactBtn.classList.add('active');
+                shardSizeLabel.innerText = "Resolução da Malha";
+                impactHint.classList.remove('hidden');
+            }
+            initMesh(); // Regenera a malha
+        };
+
+        // Listeners de Impacto
+        impactIntensityInput.addEventListener('input', (e) => {
+            impactIntensity = parseInt(e.target.value);
+            document.getElementById('impactIntVal').innerText = impactIntensity + '%';
+            if (patternMode === 'radial') {
+                initMesh();
+            } else {
+                applyImpactDamage();
+            }
+        });
+
+        impactFalloutInput.addEventListener('input', (e) => {
+            impactFallout = parseInt(e.target.value);
+            document.getElementById('impactFallVal').innerText = impactFallout + '%';
+            applyImpactDamage();
+        });
 
         rgbShiftInput.addEventListener('input', (e) => {
             rgbAmount = parseInt(e.target.value);
@@ -433,16 +534,21 @@
             }
         }
 
-        shardSizeInput.addEventListener('change', (e) => { 
+        shardSizeInput.addEventListener('input', (e) => { 
             currentShardSize = parseInt(e.target.value);
-            document.getElementById('shardSizeVal').innerText = currentShardSize + 'px';
-            generateShards();
+            const valSpan = document.getElementById('shardSizeVal');
+            if(valSpan) valSpan.innerText = currentShardSize + 'px';
+            initMesh();
         });
 
         distortionInput.addEventListener('input', (e) => {
             currentDistortion = parseInt(e.target.value);
             document.getElementById('distortionVal').innerText = currentDistortion + '%';
-            updateShardOffsets();
+        });
+
+        shardSpeedInput.addEventListener('input', (e) => {
+            shardRotationSpeed = parseInt(e.target.value) * 0.005; 
+            document.getElementById('shardSpeedVal').innerText = e.target.value;
         });
 
         gapInput.addEventListener('input', (e) => {
@@ -452,7 +558,7 @@
 
         window.addEventListener('resize', () => {
             resizeCanvas();
-            generateShards();
+            initMesh();
         });
 
         function resizeCanvas() {
@@ -469,73 +575,213 @@
             shatteredCanvas.height = height;
             
             frameBuffer.length = 0;
+            if (impactPos.x === 0 && impactPos.y === 0) {
+                impactPos.x = width / 2;
+                impactPos.y = height / 2;
+            }
         }
 
-        function generateShards(force = false) {
+        function initMesh(force = false) {
             if (!width || !height) return;
-            shards = [];
-            const cellSize = Math.max(30, 180 - currentShardSize); 
-            const cols = Math.ceil(width / cellSize) + 1;
-            const rows = Math.ceil(height / cellSize) + 1;
-            const vertices = [];
+            
+            mesh.vertices = [];
+            mesh.triangles = [];
 
-            for (let y = 0; y <= rows; y++) {
-                let rowVertices = [];
-                for (let x = 0; x <= cols; x++) {
-                    let vx = x * cellSize;
-                    let vy = y * cellSize;
-                    if (x > 0 && x < cols && y > 0 && y < rows) {
-                        const variance = cellSize * 0.45;
-                        vx += (Math.random() - 0.5) * variance * 2;
-                        vy += (Math.random() - 0.5) * variance * 2;
-                    }
-                    rowVertices.push({x: vx, y: vy});
-                }
-                vertices.push(rowVertices);
+            if (patternMode === 'mosaic') {
+                generateMosaicMesh();
+            } else {
+                generateImpactMesh(); 
             }
+            
+            applyImpactDamage();
+        }
 
+        function generateMosaicMesh() {
+            const cellSize = Math.max(30, 180 - currentShardSize);
+            const diag = Math.sqrt(width*width + height*height);
+            const maxDim = diag * 1.2; 
+            const startX = (width - maxDim) / 2;
+            const startY = (height - maxDim) / 2;
+            const cols = Math.ceil(maxDim / cellSize) + 1;
+            const rows = Math.ceil(maxDim / cellSize) + 1;
+            
+            for (let y = 0; y <= rows; y++) {
+                for (let x = 0; x <= cols; x++) {
+                    const ox = startX + x * cellSize;
+                    const oy = startY + y * cellSize;
+                    const variance = cellSize * 0.45;
+                    const vx = ox + (Math.random() - 0.5) * variance;
+                    const vy = oy + (Math.random() - 0.5) * variance;
+                    mesh.vertices.push({ baseX: vx, baseY: vy, x: vx, y: vy, phase: Math.random() * Math.PI * 2 });
+                }
+            }
+            
             for (let y = 0; y < rows; y++) {
                 for (let x = 0; x < cols; x++) {
-                    const p1 = vertices[y][x];
-                    const p2 = vertices[y][x+1];
-                    const p3 = vertices[y+1][x];
-                    const p4 = vertices[y+1][x+1];
-                    if (Math.random() > 0.5) {
-                        createShard(p1, p2, p3);
-                        createShard(p2, p4, p3);
-                    } else {
-                        createShard(p1, p2, p4);
-                        createShard(p1, p4, p3);
+                    const i1 = y * (cols + 1) + x;
+                    const i2 = i1 + 1;
+                    const i3 = (y + 1) * (cols + 1) + x;
+                    const i4 = i3 + 1;
+                    const cx = (mesh.vertices[i1].baseX + mesh.vertices[i4].baseX) / 2;
+                    const cy = (mesh.vertices[i1].baseY + mesh.vertices[i4].baseY) / 2;
+                    const t1 = { indices: [i1, i2, i3], cx: cx, cy: cy, visible: true, scale: 1.0 };
+                    const t2 = { indices: [i2, i4, i3], cx: cx, cy: cy, visible: true, scale: 1.0 };
+                    if (Math.random() > 0.5) { mesh.triangles.push(t1); mesh.triangles.push(t2); }
+                    else {
+                        const t3 = { indices: [i1, i2, i4], cx: cx, cy: cy, visible: true, scale: 1.0 };
+                        const t4 = { indices: [i1, i4, i3], cx: cx, cy: cy, visible: true, scale: 1.0 };
+                        mesh.triangles.push(t3); mesh.triangles.push(t4);
                     }
                 }
             }
-            updateShardOffsets();
         }
 
-        function createShard(p1, p2, p3) {
-            const cx = (p1.x + p2.x + p3.x) / 3;
-            const cy = (p1.y + p2.y + p3.y) / 3;
-            const mirrorRadius = Math.min(width, height) * 0.45;
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const dist = Math.sqrt(Math.pow(cx - centerX, 2) + Math.pow(cy - centerY, 2));
+        // --- NOVO ALGORITMO: JAGGED POLAR GRID (Realista) ---
+        function generateImpactMesh() {
+            const centerX = impactPos.x;
+            const centerY = impactPos.y;
+            
+            const baseDensity = (180 - currentShardSize) / 30; // ~1 a 5
+            const intensityMult = 1 + (impactIntensity / 100) * 1.5;
 
-            if (dist < mirrorRadius * 1.3) {
-                shards.push({
-                    path: [p1, p2, p3],
-                    center: {x: cx, y: cy},
-                    offsetX: 0,
-                    offsetY: 0
-                });
+            const numRays = Math.floor((10 + baseDensity * 4) * intensityMult);
+            const numRings = Math.floor((6 + baseDensity * 3) * intensityMult);
+            
+            const maxRadius = Math.max(width, height) * 1.5;
+            
+            mesh.vertices.push({ baseX: centerX, baseY: centerY, x: centerX, y: centerY, phase: 0 });
+            
+            let rayAngles = [];
+            const angleStep = (Math.PI * 2) / numRays;
+            
+            for(let i=0; i<numRays; i++) {
+                rayAngles.push(i * angleStep + (Math.random() - 0.5) * angleStep * 0.5);
+            }
+
+            const q = 1.1 + (impactIntensity / 100) * 0.4; 
+
+            for (let r = 1; r <= numRings; r++) {
+                const numerator = Math.pow(q, r) - 1;
+                const denominator = Math.pow(q, numRings) - 1;
+                const baseDist = maxRadius * (numerator / denominator);
+                
+                for (let i = 0; i < numRays; i++) {
+                    const drift = (Math.random() - 0.5) * angleStep * 0.4;
+                    rayAngles[i] += drift;
+                    
+                    const distJitter = (Math.random() - 0.5) * (baseDist * 0.15); 
+                    const currentDist = baseDist + distJitter;
+                    
+                    const vx = centerX + Math.cos(rayAngles[i]) * currentDist;
+                    const vy = centerY + Math.sin(rayAngles[i]) * currentDist;
+                    
+                    mesh.vertices.push({ 
+                        baseX: vx, baseY: vy, 
+                        x: vx, y: vy, 
+                        phase: Math.random() * Math.PI * 2 
+                    });
+                }
+            }
+            
+            for (let i = 0; i < numRays; i++) {
+                const nextI = (i + 1) % numRays;
+                const v1 = 1 + i;
+                const v2 = 1 + nextI;
+                
+                const cx = (mesh.vertices[0].baseX + mesh.vertices[v1].baseX + mesh.vertices[v2].baseX) / 3;
+                const cy = (mesh.vertices[0].baseY + mesh.vertices[v1].baseY + mesh.vertices[v2].baseY) / 3;
+                
+                mesh.triangles.push({ indices: [0, v1, v2], cx: cx, cy: cy, visible: true, scale: 1.0 });
+            }
+            
+            for (let r = 0; r < numRings - 1; r++) {
+                const startInner = 1 + r * numRays;
+                const startOuter = 1 + (r + 1) * numRays;
+                
+                for (let i = 0; i < numRays; i++) {
+                    const nextI = (i + 1) % numRays;
+                    
+                    const inner1 = startInner + i;
+                    const inner2 = startInner + nextI;
+                    const outer1 = startOuter + i;
+                    const outer2 = startOuter + nextI;
+                    
+                    const cx = (mesh.vertices[inner1].baseX + mesh.vertices[outer2].baseX) / 2;
+                    const cy = (mesh.vertices[inner1].baseY + mesh.vertices[outer2].baseY) / 2;
+                    
+                    if (Math.random() > 0.5) {
+                        mesh.triangles.push({ indices: [inner1, outer1, outer2], cx: cx, cy: cy, visible: true, scale: 1.0 });
+                        mesh.triangles.push({ indices: [inner1, outer2, inner2], cx: cx, cy: cy, visible: true, scale: 1.0 });
+                    } else {
+                        mesh.triangles.push({ indices: [inner1, outer1, inner2], cx: cx, cy: cy, visible: true, scale: 1.0 });
+                        mesh.triangles.push({ indices: [outer1, outer2, inner2], cx: cx, cy: cy, visible: true, scale: 1.0 });
+                    }
+                }
             }
         }
 
-        function updateShardOffsets() {
-            shards.forEach(shard => {
-                const maxOffset = currentDistortion * 1.5;
-                shard.offsetX = (Math.random() - 0.5) * maxOffset;
-                shard.offsetY = (Math.random() - 0.5) * maxOffset;
-            });
+        // Apply Impact Damage: Calcula visibilidade (Fallout) e escala (Cracks)
+        function applyImpactDamage() {
+            if (mesh.triangles.length === 0) return;
+
+            const intensityFactor = impactIntensity / 100; 
+            const falloutFactor = impactFallout / 100;
+            
+            const screenDiag = Math.sqrt(width*width + height*height);
+            const baseBlastRadius = screenDiag * 0.6 * intensityFactor;
+
+            for (let i = 0; i < mesh.triangles.length; i++) {
+                const t = mesh.triangles[i];
+                t.scale = 1.0; 
+
+                const dx = t.cx - impactPos.x;
+                const dy = t.cy - impactPos.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const angle = Math.atan2(dy, dx);
+                
+                const seed = t.cx * 12.9898 + t.cy * 78.233 + i;
+                const rnd = Math.sin(seed) * 43758.5453;
+                const randomVal = rnd - Math.floor(rnd);
+
+                const angleNoise = Math.sin(angle * 7 + randomVal) * 0.3 + Math.cos(angle * 3) * 0.2;
+                const chaoticLimit = baseBlastRadius * (1 + angleNoise * 0.6 + (randomVal - 0.5) * 0.4);
+
+                if (falloutFactor > 0 && dist < chaoticLimit) {
+                    const distFactor = dist / chaoticLimit;
+                    const fallChance = Math.pow(1 - distFactor, 2) * falloutFactor * (0.8 + 0.4 * randomVal);
+                    t.visible = randomVal > fallChance;
+                } else {
+                    t.visible = true;
+                }
+            }
+        }
+
+        function updateMeshState() {
+            if (shardRotationSpeed !== 0) {
+                meshAngle += shardRotationSpeed;
+            } else {
+                meshAngle = 0; 
+            }
+
+            const cx = width / 2;
+            const cy = height / 2;
+
+            for (let i = 0; i < mesh.vertices.length; i++) {
+                const v = mesh.vertices[i];
+                
+                let tx = v.baseX;
+                let ty = v.baseY;
+
+                if (meshAngle !== 0) {
+                    const rx = tx - cx;
+                    const ry = ty - cy;
+                    tx = cx + rx * Math.cos(meshAngle) - ry * Math.sin(meshAngle);
+                    ty = cy + rx * Math.sin(meshAngle) + ry * Math.cos(meshAngle);
+                }
+
+                v.x = tx;
+                v.y = ty;
+            }
         }
 
         async function initializeApp() {
@@ -576,7 +822,7 @@
             controlsPanel.classList.add('hidden-panel');
             isRunning = true;
             resizeCanvas();
-            generateShards();
+            initMesh(); 
             requestAnimationFrame(drawLoop);
         }
 
@@ -623,6 +869,12 @@
             }
 
             const videoReady = (video.readyState === video.HAVE_ENOUGH_DATA);
+
+            if (shardRotationSpeed !== 0) {
+                offCtx.translate(width/2, height/2);
+                offCtx.rotate(-meshAngle * 0.5); 
+                offCtx.translate(-width/2, -height/2);
+            }
 
             if (sourceMode === 'camera') {
                 if (videoReady) offCtx.drawImage(video, 0, 0, width, height);
@@ -694,53 +946,98 @@
             blurCtx.drawImage(displayFrame, 0, 0);
             blurCtx.globalAlpha = 1.0; 
 
+            updateMeshState();
+
             shatteredCtx.clearRect(0, 0, width, height);
             
-            shards.forEach((shard, i) => {
+            const verts = mesh.vertices;
+            const distortionFactor = currentDistortion * 0.5;
+
+            for(let i=0; i<mesh.triangles.length; i++) {
+                const t = mesh.triangles[i];
+                
+                if (!t.visible) continue;
+
+                const p1 = verts[t.indices[0]];
+                const p2 = verts[t.indices[1]];
+                const p3 = verts[t.indices[2]];
+
+                if (Math.min(p1.x, p2.x, p3.x) > width || Math.max(p1.x, p2.x, p3.x) < 0 ||
+                    Math.min(p1.y, p2.y, p3.y) > height || Math.max(p1.y, p2.y, p3.y) < 0) {
+                    continue;
+                }
+
+                const cx = (p1.x + p2.x + p3.x) / 3;
+                const cy = (p1.y + p2.y + p3.y) / 3;
+
+                const s = t.scale || 1.0;
+                
+                const sp1x = cx + (p1.x - cx) * s;
+                const sp1y = cy + (p1.y - cy) * s;
+                const sp2x = cx + (p2.x - cx) * s;
+                const sp2y = cy + (p2.y - cy) * s;
+                const sp3x = cx + (p3.x - cx) * s;
+                const sp3y = cy + (p3.y - cy) * s;
+
                 shatteredCtx.save();
                 shatteredCtx.beginPath();
-                shatteredCtx.moveTo(shard.path[0].x, shard.path[0].y);
-                shatteredCtx.lineTo(shard.path[1].x, shard.path[1].y);
-                shatteredCtx.lineTo(shard.path[2].x, shard.path[2].y);
+                shatteredCtx.moveTo(sp1x, sp1y);
+                shatteredCtx.lineTo(sp2x, sp2y);
+                shatteredCtx.lineTo(sp3x, sp3y);
                 shatteredCtx.closePath();
+                
                 shatteredCtx.clip();
 
-                const drawX = shard.offsetX;
-                const drawY = shard.offsetY;
+                const warpX = (Math.sin(i * 132.1) - 0.5) * distortionFactor;
+                const warpY = (Math.cos(i * 453.2) - 0.5) * distortionFactor;
 
-                shatteredCtx.drawImage(blurCanvas, -drawX, -drawY, width, height);
+                shatteredCtx.drawImage(blurCanvas, warpX, warpY, width, height);
                 shatteredCtx.restore();
 
+                // Gap Logic
                 if (currentGap > 0) {
+                    shatteredCtx.save();
                     shatteredCtx.beginPath();
-                    shatteredCtx.moveTo(shard.path[0].x, shard.path[0].y);
-                    shatteredCtx.lineTo(shard.path[1].x, shard.path[1].y);
-                    shatteredCtx.lineTo(shard.path[2].x, shard.path[2].y);
+                    shatteredCtx.moveTo(sp1x, sp1y);
+                    shatteredCtx.lineTo(sp2x, sp2y);
+                    shatteredCtx.lineTo(sp3x, sp3y);
                     shatteredCtx.closePath();
-                    shatteredCtx.strokeStyle = 'rgba(10,10,10, 0.6)';
+                    
+                    shatteredCtx.strokeStyle = '#050505'; 
                     shatteredCtx.lineWidth = currentGap;
+                    shatteredCtx.lineJoin = 'round'; 
                     shatteredCtx.stroke();
+                    shatteredCtx.restore();
                 }
-                
-                shatteredCtx.strokeStyle = 'rgba(255,255,255,0.15)';
-                shatteredCtx.lineWidth = 1;
-                shatteredCtx.stroke();
+
+                // Highlight
+                if (s < 0.98 || currentGap > 0) {
+                    shatteredCtx.save();
+                    shatteredCtx.beginPath();
+                    shatteredCtx.moveTo(sp1x, sp1y);
+                    shatteredCtx.lineTo(sp2x, sp2y);
+                    shatteredCtx.lineTo(sp3x, sp3y);
+                    shatteredCtx.closePath();
+                    shatteredCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    shatteredCtx.lineWidth = 1;
+                    shatteredCtx.lineJoin = 'round';
+                    shatteredCtx.stroke();
+                    shatteredCtx.restore();
+                }
 
                 if (showIdsInput.checked) {
                     shatteredCtx.fillStyle = 'rgba(255, 230, 0, 0.9)'; 
-                    shatteredCtx.font = 'bold 12px Arial';
+                    shatteredCtx.font = 'bold 10px Arial';
                     shatteredCtx.textAlign = 'center';
-                    shatteredCtx.textBaseline = 'middle';
-                    shatteredCtx.fillText(i, shard.center.x, shard.center.y);
+                    shatteredCtx.fillText(i, cx, cy);
                 }
-            });
+            }
 
             ctx.fillStyle = '#050505';
             ctx.fillRect(0, 0, width, height);
 
             if (kSegments <= 0) {
                 ctx.save();
-                
                 ctx.beginPath();
                 const radius = Math.min(width, height) * 0.42;
                 ctx.arc(width/2, height/2, radius, 0, Math.PI * 2);
@@ -748,17 +1045,11 @@
                 ctx.lineWidth = 10;
                 ctx.stroke();
                 ctx.clip(); 
-                
                 ctx.drawImage(shatteredCanvas, 0, 0);
-                
                 ctx.restore();
 
             } else {
-                // Se a velocidade for 0, reseta a posição para o topo
-                if (kSpeed === 0) {
-                    kRotationAngle = 0;
-                }
-                
+                if (kSpeed === 0) kRotationAngle = 0;
                 kRotationAngle += kSpeed; 
                 
                 const centerX = width / 2;
@@ -777,8 +1068,6 @@
                 ctx.fill();
 
                 ctx.translate(centerX, centerY);
-                
-                // Correção chave para orientação vertical (90 graus)
                 ctx.rotate(kRotationAngle - Math.PI / 2);
 
                 const sliceAngle = (Math.PI * 2) / kSegments;
@@ -786,17 +1075,13 @@
                 for (let i = 0; i < kSegments; i++) {
                     ctx.save();
                     
-                    // Rotação condicional para corrigir a "fatia preta" e o espelhamento
                     const rotation = (i % 2 === 0) ? i * sliceAngle : (i + 1) * sliceAngle;
                     ctx.rotate(rotation);
                     
-                    if (i % 2 !== 0) {
-                        ctx.scale(1, -1);
-                    }
+                    if (i % 2 !== 0) ctx.scale(1, -1);
 
                     ctx.beginPath();
                     ctx.moveTo(0, 0);
-                    // Garante que o arco cubra toda a fatia, evitando gaps
                     ctx.arc(0, 0, fillRadius, -0.01, sliceAngle + 0.01); 
                     ctx.lineTo(0, 0);
                     ctx.clip();
