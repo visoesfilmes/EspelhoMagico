@@ -34,11 +34,22 @@
             width: 280px;
             max-height: 90vh;
             overflow-y: auto;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
         #controls.hidden-panel {
             transform: translateX(120%);
+            opacity: 0.5;
+            pointer-events: none; /* Evita cliques acidentais quando oculto */
+        }
+        /* Área de gatilho invisível para facilitar o hover perto da borda direita */
+        #hoverTrigger {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 100vh;
+            z-index: 9;
         }
         /* Scrollbar fina para o painel */
         #controls::-webkit-scrollbar {
@@ -110,6 +121,13 @@
             margin-top: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #toggleControls {
+            transition: opacity 0.3s;
+        }
+        #toggleControls:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -129,15 +147,20 @@
     <video id="videoSource" autoplay playsinline></video>
     <canvas id="mainCanvas"></canvas>
 
-    <!-- Painel de Controles -->
-    <button id="toggleControls" class="absolute top-5 right-5 z-20 text-white bg-gray-800 p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-700 hidden">
+    <!-- Gatilho de Hover na Borda (Opcional, mas ajuda na UX) -->
+    <div id="hoverTrigger"></div>
+
+    <!-- Botão de Menu (Trigger Principal) -->
+    <button id="toggleControls" class="absolute top-5 right-5 z-20 text-white bg-gray-800 p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-700 hidden shadow-lg border border-gray-600">
         <i class="fas fa-sliders-h"></i>
     </button>
 
+    <!-- Painel de Controles -->
     <div id="controls" class="hidden">
         <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
             <h2 class="font-bold text-lg text-purple-300"><i class="fas fa-wand-magic-sparkles mr-2"></i>Controles</h2>
-            <button id="closeControls" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            <!-- Botão fechar mantido, mas a lógica principal será via mouse leave -->
+            <button id="closeControls" class="text-gray-400 hover:text-white text-sm"><i class="fas fa-chevron-right"></i></button>
         </div>
 
         <!-- Seção de Fonte -->
@@ -160,7 +183,7 @@
             </div>
         </div>
 
-        <!-- Efeitos Ópticos (Novos) -->
+        <!-- Efeitos Ópticos -->
         <div class="mb-5 border-b border-gray-700 pb-4">
             <label class="text-xs uppercase font-bold text-purple-400 mb-2 block">Efeitos Ópticos</label>
             
@@ -240,6 +263,7 @@
         const toggleControlsBtn = document.getElementById('toggleControls');
         const closeControlsBtn = document.getElementById('closeControls');
         const errorMsg = document.getElementById('errorMsg');
+        const hoverTrigger = document.getElementById('hoverTrigger');
 
         // Controles de Fonte
         const btnCamera = document.getElementById('btnCamera');
@@ -286,27 +310,55 @@
         let blurAmount = 0;
         
         // Buffers para Efeitos
-        const frameBuffer = []; // Armazena OffscreenCanvases inteiros (ImageData seria muito lento para put/get)
-        const maxBufferLength = 60; // Max ~1-2 segundos
+        const frameBuffer = []; 
+        const maxBufferLength = 60; 
 
-        // Canvas offscreen principal (composição final antes dos cacos)
+        // Canvas offscreen
         const offscreenCanvas = document.createElement('canvas');
         const offCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
-
-        // Canvas de Acumulação para Motion Blur
         const blurCanvas = document.createElement('canvas');
         const blurCtx = blurCanvas.getContext('2d', { willReadFrequently: true });
 
-        // Event Listeners UI
-        startBtn.addEventListener('click', initializeApp);
-        
-        toggleControlsBtn.addEventListener('click', () => {
+        // --- SISTEMA DE MENU AUTOMÁTICO ---
+        let hideMenuTimeout;
+
+        function showMenu() {
+            clearTimeout(hideMenuTimeout);
             controlsPanel.classList.remove('hidden-panel');
-        });
+            // Opcional: Ocultar o botão flutuante quando o menu abre
+            // toggleControlsBtn.style.opacity = '0';
+        }
+
+        function hideMenu() {
+            // Pequeno delay para permitir mover o mouse entre o botão e o painel sem fechar
+            hideMenuTimeout = setTimeout(() => {
+                controlsPanel.classList.add('hidden-panel');
+                // toggleControlsBtn.style.opacity = '1';
+            }, 600); // 600ms de tolerância
+        }
+
+        // Eventos de Mouse para o Menu
+        toggleControlsBtn.addEventListener('mouseenter', showMenu);
+        toggleControlsBtn.addEventListener('mouseleave', hideMenu);
         
+        controlsPanel.addEventListener('mouseenter', showMenu);
+        controlsPanel.addEventListener('mouseleave', hideMenu);
+
+        // Gatilho extra na borda direita (para facilitar achar o menu)
+        hoverTrigger.addEventListener('mouseenter', showMenu);
+        hoverTrigger.addEventListener('mouseleave', hideMenu);
+
+        // Botão Fechar manual (caso necessário)
         closeControlsBtn.addEventListener('click', () => {
-            controlsPanel.classList.add('hidden-panel');
+             controlsPanel.classList.add('hidden-panel');
         });
+
+
+        // Event Listeners UI Base
+        startBtn.addEventListener('click', initializeApp);
+
+        // Abertura manual removida/adaptada para hover, mas mantemos o clique como fallback
+        toggleControlsBtn.addEventListener('click', showMenu);
 
         document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
         regenerateBtn.addEventListener('click', () => generateShards(true));
@@ -409,8 +461,6 @@
             offscreenCanvas.height = height;
             blurCanvas.width = width;
             blurCanvas.height = height;
-            
-            // Limpar buffer ao redimensionar para evitar glitches
             frameBuffer.length = 0;
         }
 
@@ -516,8 +566,14 @@
         function startLoop() {
             loader.style.display = 'none';
             startOverlay.style.display = 'none';
+            
+            // Removendo 'hidden' (display: none) para que os elementos existam
             controlsPanel.classList.remove('hidden');
             toggleControlsBtn.classList.remove('hidden');
+
+            // Adicionando 'hidden-panel' para que o menu comece fechado (off-screen)
+            controlsPanel.classList.add('hidden-panel');
+
             isRunning = true;
             resizeCanvas();
             generateShards();
@@ -526,39 +582,29 @@
 
         function applyRGBShift(ctx, width, height, amount) {
             if (amount <= 0) return;
-            
-            // Operação de pixels é pesada, mas necessária para o efeito "real"
-            // Para performance, só fazemos se amount > 0
             const imageData = ctx.getImageData(0, 0, width, height);
             const data = imageData.data;
-            const copy = new Uint8ClampedArray(data); // Cópia limpa para leitura
+            const copy = new Uint8ClampedArray(data); 
 
-            // amount é pixels de deslocamento
-            // Estrutura: R G B A, R G B A...
-            
             for (let i = 0; i < data.length; i += 4) {
-                // Calcular posição X, Y do pixel atual
                 const pixelIdx = i / 4;
                 const x = pixelIdx % width;
                 const y = Math.floor(pixelIdx / width);
 
-                // RED CHANNEL: Pega do pixel à ESQUERDA (x - amount)
-                let rVal = copy[i]; // Default: valor original
+                let rVal = copy[i]; 
                 if (x > amount) {
                     const leftIdx = ((y * width) + (x - amount)) * 4;
                     rVal = copy[leftIdx];
                 }
                 
-                // BLUE CHANNEL: Pega do pixel à DIREITA (x + amount)
-                let bVal = copy[i + 2]; // Default
+                let bVal = copy[i + 2]; 
                 if (x < width - amount) {
                     const rightIdx = ((y * width) + (x + amount)) * 4;
                     bVal = copy[rightIdx + 2];
                 }
 
-                data[i] = rVal;     // Red
-                data[i+2] = bVal;   // Blue
-                // Green (i+1) fica inalterado (âncora)
+                data[i] = rVal;     
+                data[i+2] = bVal;   
             }
             
             ctx.putImageData(imageData, 0, 0);
@@ -567,7 +613,6 @@
         function drawLoop() {
             if (!isRunning) return;
 
-            // 1. Preparar o Frame Atual (Sem efeitos temporais ainda)
             offCtx.save();
             offCtx.fillStyle = '#000';
             offCtx.fillRect(0,0, width, height);
@@ -609,7 +654,6 @@
             }
             offCtx.restore();
 
-            // 2. Aplicar P&B na fonte original (opcional, antes dos efeitos)
             if (bwModeInput.checked) {
                 const imgData = offCtx.getImageData(0, 0, width, height);
                 const d = imgData.data;
@@ -620,20 +664,13 @@
                 offCtx.putImageData(imgData, 0, 0);
             }
 
-            // 3. Aplicar RGB Shift na fonte (Gera a imagem "Glitch")
             if (rgbAmount > 0) {
                 applyRGBShift(offCtx, width, height, rgbAmount);
             }
 
-            // 4. Lógica de Buffer (DELAY)
-            // Criamos um bitmap/canvas temporário para salvar este frame
-            // Usar createPattern ou apenas desenhar em um canvas pequeno é melhor para memória, 
-            // mas aqui usaremos um canvas do tamanho da tela para qualidade.
-            // Para otimizar, reutilizamos canvas se o buffer estiver cheio.
-            
             let storedFrameCanvas;
             if (frameBuffer.length >= maxBufferLength) {
-                storedFrameCanvas = frameBuffer.shift(); // Recicla o canvas mais antigo
+                storedFrameCanvas = frameBuffer.shift(); 
             } else {
                 storedFrameCanvas = document.createElement('canvas');
                 storedFrameCanvas.width = width;
@@ -642,38 +679,21 @@
             
             const sfCtx = storedFrameCanvas.getContext('2d');
             sfCtx.clearRect(0,0,width,height);
-            sfCtx.drawImage(offscreenCanvas, 0, 0); // Salva o frame atual (com RGB shift e tudo)
+            sfCtx.drawImage(offscreenCanvas, 0, 0); 
             frameBuffer.push(storedFrameCanvas);
 
-            // Determinar qual frame exibir baseado no atraso
             let displayFrame;
-            // Se delay é 0, pega o último. Se delay é alto, pega anterior.
-            // Índice: length - 1 - delay
             let index = frameBuffer.length - 1 - delayAmount;
             if (index < 0) index = 0;
             displayFrame = frameBuffer[index];
 
-            // 5. Lógica de Motion Blur (Acumulação)
-            // Desenhamos o displayFrame no blurCanvas com baixa opacidade para manter o rastro
-            
-            // Passo A: Diminuir a opacidade do que já está no blurCanvas (Fade out trails)
-            // A forma clássica de rastro é: Desenhar o novo frame com opacidade X sobre o antigo.
-            // Quanto MENOR a opacidade do novo frame, MAIOR o rastro do antigo.
-            // Se blurAmount = 0 (0%), alpha = 1.0 (substitui tudo).
-            // Se blurAmount = 0.9 (90%), alpha = 0.1 (novo frame é fraco, velho persiste).
-            
             const alpha = 1 - blurAmount; 
             
-            // Truque para motion blur: desenhar o novo frame semi-transparente sobre o canvas que nunca é limpo
             blurCtx.globalAlpha = alpha;
             blurCtx.globalCompositeOperation = 'source-over';
             blurCtx.drawImage(displayFrame, 0, 0);
-            blurCtx.globalAlpha = 1.0; // Reset
+            blurCtx.globalAlpha = 1.0; 
 
-            // O `blurCanvas` agora contém a imagem final processada (Source + RGB + Delay + Blur)
-            // Usaremos ele como textura para os cacos.
-
-            // 6. Limpar Canvas Principal e Desenhar Cacos
             ctx.fillStyle = '#050505';
             ctx.fillRect(0, 0, width, height);
 
@@ -700,7 +720,6 @@
                 const drawX = shard.offsetX;
                 const drawY = shard.offsetY;
 
-                // Desenha a textura final (blurCanvas)
                 ctx.drawImage(blurCanvas, -drawX, -drawY, width, height);
                 ctx.restore();
 
@@ -731,7 +750,6 @@
                 }
             });
 
-            // 7. Ghost Effect (Original limpo por cima)
             if (currentOverlayOpacity > 0) {
                 ctx.save();
                 ctx.globalAlpha = currentOverlayOpacity;
