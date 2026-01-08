@@ -42,14 +42,9 @@
             opacity: 0.5;
             pointer-events: none; /* Evita cliques acidentais quando oculto */
         }
-        /* Área de gatilho invisível para facilitar o hover perto da borda direita */
+        /* Área de gatilho removida visualmente pois não usaremos hover */
         #hoverTrigger {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 20px;
-            height: 100vh;
-            z-index: 9;
+            display: none;
         }
         /* Scrollbar fina para o painel */
         #controls::-webkit-scrollbar {
@@ -147,7 +142,7 @@
     <video id="videoSource" autoplay playsinline></video>
     <canvas id="mainCanvas"></canvas>
 
-    <!-- Gatilho de Hover na Borda (Opcional, mas ajuda na UX) -->
+    <!-- Gatilho de Hover na Borda (Desativado) -->
     <div id="hoverTrigger"></div>
 
     <!-- Botão de Menu (Trigger Principal) -->
@@ -159,7 +154,7 @@
     <div id="controls" class="hidden">
         <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
             <h2 class="font-bold text-lg text-purple-300"><i class="fas fa-wand-magic-sparkles mr-2"></i>Controles</h2>
-            <!-- Botão fechar mantido, mas a lógica principal será via mouse leave -->
+            <!-- Botão fechar mantido -->
             <button id="closeControls" class="text-gray-400 hover:text-white text-sm"><i class="fas fa-chevron-right"></i></button>
         </div>
 
@@ -319,46 +314,22 @@
         const blurCanvas = document.createElement('canvas');
         const blurCtx = blurCanvas.getContext('2d', { willReadFrequently: true });
 
-        // --- SISTEMA DE MENU AUTOMÁTICO ---
-        let hideMenuTimeout;
-
-        function showMenu() {
-            clearTimeout(hideMenuTimeout);
-            controlsPanel.classList.remove('hidden-panel');
-            // Opcional: Ocultar o botão flutuante quando o menu abre
-            // toggleControlsBtn.style.opacity = '0';
-        }
-
-        function hideMenu() {
-            // Pequeno delay para permitir mover o mouse entre o botão e o painel sem fechar
-            hideMenuTimeout = setTimeout(() => {
-                controlsPanel.classList.add('hidden-panel');
-                // toggleControlsBtn.style.opacity = '1';
-            }, 600); // 600ms de tolerância
-        }
-
-        // Eventos de Mouse para o Menu
-        toggleControlsBtn.addEventListener('mouseenter', showMenu);
-        toggleControlsBtn.addEventListener('mouseleave', hideMenu);
+        // --- SISTEMA DE MENU MANUAL (Toggle) ---
         
-        controlsPanel.addEventListener('mouseenter', showMenu);
-        controlsPanel.addEventListener('mouseleave', hideMenu);
+        function toggleMenu() {
+            controlsPanel.classList.toggle('hidden-panel');
+        }
 
-        // Gatilho extra na borda direita (para facilitar achar o menu)
-        hoverTrigger.addEventListener('mouseenter', showMenu);
-        hoverTrigger.addEventListener('mouseleave', hideMenu);
+        // Evento de Clique para o Botão do Menu
+        toggleControlsBtn.addEventListener('click', toggleMenu);
 
-        // Botão Fechar manual (caso necessário)
+        // Botão Fechar manual (dentro do painel)
         closeControlsBtn.addEventListener('click', () => {
              controlsPanel.classList.add('hidden-panel');
         });
 
-
         // Event Listeners UI Base
         startBtn.addEventListener('click', initializeApp);
-
-        // Abertura manual removida/adaptada para hover, mas mantemos o clique como fallback
-        toggleControlsBtn.addEventListener('click', showMenu);
 
         document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
         regenerateBtn.addEventListener('click', () => generateShards(true));
