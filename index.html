@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espelho Mágico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 280px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        #controls.hidden-panel {
+            transform: translateX(120%);
+        }
+        /* Scrollbar fina para o painel */
+        #controls::-webkit-scrollbar {
+            width: 6px;
+        }
+        #controls::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        .slider-container {
+            margin-bottom: 15px;
+        }
+        input[type=range] {
+            width: 100%;
+            accent-color: #8b5cf6; /* Roxo Mágico */
+            cursor: pointer;
+        }
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #d1d5db;
+        }
+        button {
+            transition: all 0.2s;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        /* Estado ativo para botões de fonte */
+        .source-btn.active {
+            background-color: #8b5cf6;
+            border-color: #8b5cf6;
+            color: white;
+        }
+        .source-btn {
+            background-color: #374151;
+            color: #d1d5db;
+        }
+
+        /* Hidden video element for raw capture */
+        #videoSource {
+            display: none;
+        }
+        #startOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #2e1065 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            color: white;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-top: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay de Início -->
+    <div id="startOverlay">
+        <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600" style="text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);">Espelho Mágico</h1>
+        <p class="text-gray-300 mb-8 text-center max-w-md">Distorções temporais, prismas de luz e reflexos fragmentados.</p>
+        <button id="startBtn" class="bg-purple-700 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-full shadow-lg border border-purple-500 flex items-center gap-2 transition hover:scale-105">
+            <i class="fas fa-sparkles"></i> Iniciar Magia
+        </button>
+        <div id="loadingSpinner" class="loader"></div>
+        <p id="errorMsg" class="text-red-500 mt-4 hidden">Erro ao inicializar.</p>
+    </div>
+
+    <!-- Elementos de Processamento -->
+    <video id="videoSource" autoplay playsinline></video>
+    <canvas id="mainCanvas"></canvas>
+
+    <!-- Painel de Controles -->
+    <button id="toggleControls" class="absolute top-5 right-5 z-20 text-white bg-gray-800 p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-700 hidden">
+        <i class="fas fa-sliders-h"></i>
+    </button>
+
+    <div id="controls" class="hidden">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+            <h2 class="font-bold text-lg text-purple-300"><i class="fas fa-wand-magic-sparkles mr-2"></i>Controles</h2>
+            <button id="closeControls" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Seção de Fonte -->
+        <div class="mb-5">
+            <label class="text-xs uppercase font-bold text-gray-500 mb-2 block">Fonte da Imagem</label>
+            <div class="flex gap-2 mb-2">
+                <button id="btnCamera" class="source-btn active flex-1 py-2 rounded text-sm font-medium border border-gray-600">
+                    <i class="fas fa-video mr-1"></i> Câmera
+                </button>
+                <button id="btnUpload" class="source-btn flex-1 py-2 rounded text-sm font-medium border border-gray-600">
+                    <i class="fas fa-image mr-1"></i> Upload
+                </button>
+            </div>
+            <input type="file" id="imageInput" accept="image/*" class="hidden">
+            <p id="fileNameDisplay" class="text-xs text-gray-400 italic truncate h-4 mb-2"></p>
+
+            <div id="cameraMixControl" class="hidden">
+                <label class="text-xs text-purple-300">Misturar Câmera <span id="camMixVal">50%</span></label>
+                <input type="range" id="cameraMix" min="0" max="100" value="50">
+            </div>
+        </div>
+
+        <!-- Efeitos Ópticos (Novos) -->
+        <div class="mb-5 border-b border-gray-700 pb-4">
+            <label class="text-xs uppercase font-bold text-purple-400 mb-2 block">Efeitos Ópticos</label>
+            
+            <div class="slider-container">
+                <label>Distorção RGB <span id="rgbVal">0</span></label>
+                <input type="range" id="rgbShift" min="0" max="20" value="0">
+                <p class="text-xs text-gray-500">Separação de cores (Glitch).</p>
+            </div>
+
+            <div class="slider-container">
+                <label>Delay (Atraso) <span id="delayVal">0ms</span></label>
+                <input type="range" id="delayFrames" min="0" max="60" value="0">
+                <p class="text-xs text-gray-500">Eco temporal.</p>
+            </div>
+
+            <div class="slider-container">
+                <label>Motion Blur <span id="blurVal">0%</span></label>
+                <input type="range" id="motionBlur" min="0" max="95" value="0">
+                <p class="text-xs text-gray-500">Rastro de movimento.</p>
+            </div>
+        </div>
+
+        <div class="slider-container">
+            <label>Tamanho dos Cacos <span id="shardSizeVal">150px</span></label>
+            <input type="range" id="shardSize" min="30" max="150" value="150" step="10">
+        </div>
+
+        <div class="slider-container">
+            <label>Intensidade da Quebra <span id="distortionVal">Alta</span></label>
+            <input type="range" id="distortion" min="0" max="100" value="40">
+        </div>
+
+        <div class="slider-container">
+            <label>Espaçamento <span id="gapVal">0px</span></label>
+            <input type="range" id="gap" min="0" max="5" value="0" step="0.5">
+        </div>
+
+        <div class="slider-container border-t border-gray-700 pt-4 mt-2">
+            <label class="text-purple-300">Sobrepor Original <span id="overlayVal">0%</span></label>
+            <input type="range" id="overlayOpacity" min="0" max="100" value="0">
+        </div>
+        
+        <div class="mb-4">
+            <label class="flex items-center gap-2 cursor-pointer mt-2">
+                <input type="checkbox" id="showIds" class="w-4 h-4 rounded accent-yellow-500">
+                <span class="text-yellow-500 text-sm font-bold">Mostrar IDs</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer mt-2">
+                <input type="checkbox" id="mirrorMode" checked class="w-4 h-4 rounded accent-purple-500">
+                Modo Espelho
+            </label>
+             <label class="flex items-center gap-2 cursor-pointer mt-2">
+                <input type="checkbox" id="bwMode" class="w-4 h-4 rounded accent-gray-500">
+                Preto e Branco
+            </label>
+        </div>
+
+        <button id="regenerateBtn" class="w-full bg-purple-700 hover:bg-purple-600 text-white py-2 rounded mt-2 text-sm font-semibold mb-2">
+            <i class="fas fa-random mr-1"></i> Quebrar Novamente
+        </button>
+
+        <button id="snapshotBtn" class="w-full bg-green-700 hover:bg-green-600 text-white py-2 rounded mt-2 text-sm font-semibold">
+            <i class="fas fa-download mr-1"></i> Salvar Foto
+        </button>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const video = document.getElementById('videoSource');
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const startBtn = document.getElementById('startBtn');
+        const startOverlay = document.getElementById('startOverlay');
+        const loader = document.getElementById('loadingSpinner');
+        const controlsPanel = document.getElementById('controls');
+        const toggleControlsBtn = document.getElementById('toggleControls');
+        const closeControlsBtn = document.getElementById('closeControls');
+        const errorMsg = document.getElementById('errorMsg');
+
+        // Controles de Fonte
+        const btnCamera = document.getElementById('btnCamera');
+        const btnUpload = document.getElementById('btnUpload');
+        const imageInput = document.getElementById('imageInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const cameraMixControl = document.getElementById('cameraMixControl');
+        const cameraMixInput = document.getElementById('cameraMix');
+
+        // Inputs
+        const rgbShiftInput = document.getElementById('rgbShift');
+        const delayFramesInput = document.getElementById('delayFrames');
+        const motionBlurInput = document.getElementById('motionBlur');
+        const shardSizeInput = document.getElementById('shardSize');
+        const distortionInput = document.getElementById('distortion');
+        const gapInput = document.getElementById('gap');
+        const overlayOpacityInput = document.getElementById('overlayOpacity'); 
+        const showIdsInput = document.getElementById('showIds'); 
+        const mirrorModeInput = document.getElementById('mirrorMode');
+        const bwModeInput = document.getElementById('bwMode');
+        const regenerateBtn = document.getElementById('regenerateBtn');
+
+        // Estado
+        let isRunning = false;
+        let width = 0;
+        let height = 0;
+        let currentOverlayOpacity = 0;
+        let currentCameraMix = 0.5;
+        
+        // Estado da Fonte
+        let sourceMode = 'camera'; 
+        let uploadedImage = new Image();
+        let isImageLoaded = false;
+        
+        // Estado dos Cacos
+        let shards = []; 
+        let currentShardSize = 150; 
+        let currentDistortion = 40;
+        let currentGap = 0;
+
+        // Estado dos Efeitos
+        let rgbAmount = 0;
+        let delayAmount = 0;
+        let blurAmount = 0;
+        
+        // Buffers para Efeitos
+        const frameBuffer = []; // Armazena OffscreenCanvases inteiros (ImageData seria muito lento para put/get)
+        const maxBufferLength = 60; // Max ~1-2 segundos
+
+        // Canvas offscreen principal (composição final antes dos cacos)
+        const offscreenCanvas = document.createElement('canvas');
+        const offCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+        // Canvas de Acumulação para Motion Blur
+        const blurCanvas = document.createElement('canvas');
+        const blurCtx = blurCanvas.getContext('2d', { willReadFrequently: true });
+
+        // Event Listeners UI
+        startBtn.addEventListener('click', initializeApp);
+        
+        toggleControlsBtn.addEventListener('click', () => {
+            controlsPanel.classList.remove('hidden-panel');
+        });
+        
+        closeControlsBtn.addEventListener('click', () => {
+            controlsPanel.classList.add('hidden-panel');
+        });
+
+        document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
+        regenerateBtn.addEventListener('click', () => generateShards(true));
+
+        // Listeners Efeitos
+        rgbShiftInput.addEventListener('input', (e) => {
+            rgbAmount = parseInt(e.target.value);
+            document.getElementById('rgbVal').innerText = rgbAmount;
+        });
+
+        delayFramesInput.addEventListener('input', (e) => {
+            delayAmount = parseInt(e.target.value);
+            document.getElementById('delayVal').innerText = Math.round(delayAmount * 16.6) + 'ms';
+        });
+
+        motionBlurInput.addEventListener('input', (e) => {
+            blurAmount = parseInt(e.target.value) / 100;
+            document.getElementById('blurVal').innerText = e.target.value + '%';
+        });
+
+        // Listeners Mix e Overlay
+        overlayOpacityInput.addEventListener('input', (e) => {
+            currentOverlayOpacity = parseInt(e.target.value) / 100;
+            document.getElementById('overlayVal').innerText = e.target.value + '%';
+        });
+
+        cameraMixInput.addEventListener('input', (e) => {
+            currentCameraMix = parseInt(e.target.value) / 100;
+            document.getElementById('camMixVal').innerText = e.target.value + '%';
+        });
+
+        // Listeners de Fonte
+        btnCamera.addEventListener('click', () => setSource('camera'));
+        btnUpload.addEventListener('click', () => {
+            imageInput.click();
+        });
+        
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    uploadedImage.onload = function() {
+                        isImageLoaded = true;
+                        setSource('image');
+                        fileNameDisplay.innerText = file.name;
+                    };
+                    uploadedImage.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function setSource(mode) {
+            sourceMode = mode;
+            if (mode === 'camera') {
+                btnCamera.classList.add('active');
+                btnUpload.classList.remove('active');
+                cameraMixControl.classList.add('hidden');
+                fileNameDisplay.innerText = '';
+                if (video.paused || video.ended) startCamera();
+            } else {
+                btnCamera.classList.remove('active');
+                btnUpload.classList.add('active');
+                cameraMixControl.classList.remove('hidden');
+                if (video.paused || video.ended) startCamera();
+            }
+        }
+
+        // Atualização em tempo real
+        shardSizeInput.addEventListener('change', (e) => { 
+            currentShardSize = parseInt(e.target.value);
+            document.getElementById('shardSizeVal').innerText = currentShardSize + 'px';
+            generateShards();
+        });
+
+        distortionInput.addEventListener('input', (e) => {
+            currentDistortion = parseInt(e.target.value);
+            document.getElementById('distortionVal').innerText = currentDistortion + '%';
+            updateShardOffsets();
+        });
+
+        gapInput.addEventListener('input', (e) => {
+            currentGap = parseFloat(e.target.value);
+            document.getElementById('gapVal').innerText = currentGap + 'px';
+        });
+
+        // Redimensionamento
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            generateShards();
+        });
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            offscreenCanvas.width = width;
+            offscreenCanvas.height = height;
+            blurCanvas.width = width;
+            blurCanvas.height = height;
+            
+            // Limpar buffer ao redimensionar para evitar glitches
+            frameBuffer.length = 0;
+        }
+
+        // --- Lógica de Geração da Malha ---
+        function generateShards(force = false) {
+            if (!width || !height) return;
+            shards = [];
+            const cellSize = Math.max(30, 180 - currentShardSize); 
+            const cols = Math.ceil(width / cellSize) + 1;
+            const rows = Math.ceil(height / cellSize) + 1;
+            const vertices = [];
+
+            for (let y = 0; y <= rows; y++) {
+                let rowVertices = [];
+                for (let x = 0; x <= cols; x++) {
+                    let vx = x * cellSize;
+                    let vy = y * cellSize;
+                    if (x > 0 && x < cols && y > 0 && y < rows) {
+                        const variance = cellSize * 0.45;
+                        vx += (Math.random() - 0.5) * variance * 2;
+                        vy += (Math.random() - 0.5) * variance * 2;
+                    }
+                    rowVertices.push({x: vx, y: vy});
+                }
+                vertices.push(rowVertices);
+            }
+
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const p1 = vertices[y][x];
+                    const p2 = vertices[y][x+1];
+                    const p3 = vertices[y+1][x];
+                    const p4 = vertices[y+1][x+1];
+                    if (Math.random() > 0.5) {
+                        createShard(p1, p2, p3);
+                        createShard(p2, p4, p3);
+                    } else {
+                        createShard(p1, p2, p4);
+                        createShard(p1, p4, p3);
+                    }
+                }
+            }
+            updateShardOffsets();
+        }
+
+        function createShard(p1, p2, p3) {
+            const cx = (p1.x + p2.x + p3.x) / 3;
+            const cy = (p1.y + p2.y + p3.y) / 3;
+            const mirrorRadius = Math.min(width, height) * 0.45;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const dist = Math.sqrt(Math.pow(cx - centerX, 2) + Math.pow(cy - centerY, 2));
+
+            if (dist < mirrorRadius * 1.2) {
+                shards.push({
+                    path: [p1, p2, p3],
+                    center: {x: cx, y: cy},
+                    offsetX: 0,
+                    offsetY: 0
+                });
+            }
+        }
+
+        function updateShardOffsets() {
+            shards.forEach(shard => {
+                const maxOffset = currentDistortion * 1.5;
+                shard.offsetX = (Math.random() - 0.5) * maxOffset;
+                shard.offsetY = (Math.random() - 0.5) * maxOffset;
+            });
+        }
+
+        // --- Câmera e Inicialização ---
+        async function initializeApp() {
+            startBtn.classList.add('hidden');
+            loader.style.display = 'block';
+            await startCamera();
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 }, 
+                        height: { ideal: 720 },
+                        facingMode: "user"
+                    } 
+                });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    if(!isRunning) startLoop();
+                };
+            } catch (err) {
+                console.error("Erro na webcam:", err);
+                errorMsg.innerText = "Câmera não detectada. Use o modo Upload.";
+                errorMsg.classList.remove('hidden');
+                setTimeout(() => {
+                    errorMsg.classList.add('hidden');
+                    if(!isRunning) startLoop();
+                }, 2000);
+            }
+        }
+
+        function startLoop() {
+            loader.style.display = 'none';
+            startOverlay.style.display = 'none';
+            controlsPanel.classList.remove('hidden');
+            toggleControlsBtn.classList.remove('hidden');
+            isRunning = true;
+            resizeCanvas();
+            generateShards();
+            requestAnimationFrame(drawLoop);
+        }
+
+        function applyRGBShift(ctx, width, height, amount) {
+            if (amount <= 0) return;
+            
+            // Operação de pixels é pesada, mas necessária para o efeito "real"
+            // Para performance, só fazemos se amount > 0
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            const copy = new Uint8ClampedArray(data); // Cópia limpa para leitura
+
+            // amount é pixels de deslocamento
+            // Estrutura: R G B A, R G B A...
+            
+            for (let i = 0; i < data.length; i += 4) {
+                // Calcular posição X, Y do pixel atual
+                const pixelIdx = i / 4;
+                const x = pixelIdx % width;
+                const y = Math.floor(pixelIdx / width);
+
+                // RED CHANNEL: Pega do pixel à ESQUERDA (x - amount)
+                let rVal = copy[i]; // Default: valor original
+                if (x > amount) {
+                    const leftIdx = ((y * width) + (x - amount)) * 4;
+                    rVal = copy[leftIdx];
+                }
+                
+                // BLUE CHANNEL: Pega do pixel à DIREITA (x + amount)
+                let bVal = copy[i + 2]; // Default
+                if (x < width - amount) {
+                    const rightIdx = ((y * width) + (x + amount)) * 4;
+                    bVal = copy[rightIdx + 2];
+                }
+
+                data[i] = rVal;     // Red
+                data[i+2] = bVal;   // Blue
+                // Green (i+1) fica inalterado (âncora)
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function drawLoop() {
+            if (!isRunning) return;
+
+            // 1. Preparar o Frame Atual (Sem efeitos temporais ainda)
+            offCtx.save();
+            offCtx.fillStyle = '#000';
+            offCtx.fillRect(0,0, width, height);
+
+            if (mirrorModeInput.checked) {
+                offCtx.translate(width, 0);
+                offCtx.scale(-1, 1);
+            }
+
+            const videoReady = (video.readyState === video.HAVE_ENOUGH_DATA);
+
+            if (sourceMode === 'camera') {
+                if (videoReady) offCtx.drawImage(video, 0, 0, width, height);
+            } else if (sourceMode === 'image') {
+                if (isImageLoaded) {
+                    const imgRatio = uploadedImage.width / uploadedImage.height;
+                    const screenRatio = width / height;
+                    let renderW, renderH, renderX, renderY;
+
+                    if (screenRatio > imgRatio) {
+                        renderW = width;
+                        renderH = width / imgRatio;
+                        renderX = 0;
+                        renderY = (height - renderH) / 2;
+                    } else {
+                        renderH = height;
+                        renderW = height * imgRatio;
+                        renderY = 0;
+                        renderX = (width - renderW) / 2;
+                    }
+                    offCtx.globalAlpha = 1.0;
+                    offCtx.drawImage(uploadedImage, renderX, renderY, renderW, renderH);
+                }
+                if (videoReady && currentCameraMix > 0) {
+                    offCtx.globalCompositeOperation = 'source-over';
+                    offCtx.globalAlpha = currentCameraMix;
+                    offCtx.drawImage(video, 0, 0, width, height);
+                }
+            }
+            offCtx.restore();
+
+            // 2. Aplicar P&B na fonte original (opcional, antes dos efeitos)
+            if (bwModeInput.checked) {
+                const imgData = offCtx.getImageData(0, 0, width, height);
+                const d = imgData.data;
+                for (let i = 0; i < d.length; i += 4) {
+                    const v = 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+                    d[i] = d[i+1] = d[i+2] = v;
+                }
+                offCtx.putImageData(imgData, 0, 0);
+            }
+
+            // 3. Aplicar RGB Shift na fonte (Gera a imagem "Glitch")
+            if (rgbAmount > 0) {
+                applyRGBShift(offCtx, width, height, rgbAmount);
+            }
+
+            // 4. Lógica de Buffer (DELAY)
+            // Criamos um bitmap/canvas temporário para salvar este frame
+            // Usar createPattern ou apenas desenhar em um canvas pequeno é melhor para memória, 
+            // mas aqui usaremos um canvas do tamanho da tela para qualidade.
+            // Para otimizar, reutilizamos canvas se o buffer estiver cheio.
+            
+            let storedFrameCanvas;
+            if (frameBuffer.length >= maxBufferLength) {
+                storedFrameCanvas = frameBuffer.shift(); // Recicla o canvas mais antigo
+            } else {
+                storedFrameCanvas = document.createElement('canvas');
+                storedFrameCanvas.width = width;
+                storedFrameCanvas.height = height;
+            }
+            
+            const sfCtx = storedFrameCanvas.getContext('2d');
+            sfCtx.clearRect(0,0,width,height);
+            sfCtx.drawImage(offscreenCanvas, 0, 0); // Salva o frame atual (com RGB shift e tudo)
+            frameBuffer.push(storedFrameCanvas);
+
+            // Determinar qual frame exibir baseado no atraso
+            let displayFrame;
+            // Se delay é 0, pega o último. Se delay é alto, pega anterior.
+            // Índice: length - 1 - delay
+            let index = frameBuffer.length - 1 - delayAmount;
+            if (index < 0) index = 0;
+            displayFrame = frameBuffer[index];
+
+            // 5. Lógica de Motion Blur (Acumulação)
+            // Desenhamos o displayFrame no blurCanvas com baixa opacidade para manter o rastro
+            
+            // Passo A: Diminuir a opacidade do que já está no blurCanvas (Fade out trails)
+            // A forma clássica de rastro é: Desenhar o novo frame com opacidade X sobre o antigo.
+            // Quanto MENOR a opacidade do novo frame, MAIOR o rastro do antigo.
+            // Se blurAmount = 0 (0%), alpha = 1.0 (substitui tudo).
+            // Se blurAmount = 0.9 (90%), alpha = 0.1 (novo frame é fraco, velho persiste).
+            
+            const alpha = 1 - blurAmount; 
+            
+            // Truque para motion blur: desenhar o novo frame semi-transparente sobre o canvas que nunca é limpo
+            blurCtx.globalAlpha = alpha;
+            blurCtx.globalCompositeOperation = 'source-over';
+            blurCtx.drawImage(displayFrame, 0, 0);
+            blurCtx.globalAlpha = 1.0; // Reset
+
+            // O `blurCanvas` agora contém a imagem final processada (Source + RGB + Delay + Blur)
+            // Usaremos ele como textura para os cacos.
+
+            // 6. Limpar Canvas Principal e Desenhar Cacos
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.save();
+            ctx.beginPath();
+            const radius = Math.min(width, height) * 0.42;
+            ctx.arc(width/2, height/2, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 10;
+            ctx.stroke();
+            ctx.clip(); 
+            ctx.fillStyle = '#111';
+            ctx.fill();
+
+            shards.forEach((shard, i) => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(shard.path[0].x, shard.path[0].y);
+                ctx.lineTo(shard.path[1].x, shard.path[1].y);
+                ctx.lineTo(shard.path[2].x, shard.path[2].y);
+                ctx.closePath();
+                ctx.clip();
+
+                const drawX = shard.offsetX;
+                const drawY = shard.offsetY;
+
+                // Desenha a textura final (blurCanvas)
+                ctx.drawImage(blurCanvas, -drawX, -drawY, width, height);
+                ctx.restore();
+
+                if (currentGap > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(shard.path[0].x, shard.path[0].y);
+                    ctx.lineTo(shard.path[1].x, shard.path[1].y);
+                    ctx.lineTo(shard.path[2].x, shard.path[2].y);
+                    ctx.closePath();
+                    ctx.strokeStyle = 'rgba(10,10,10, 0.6)';
+                    ctx.lineWidth = currentGap;
+                    ctx.stroke();
+                }
+                
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                if (showIdsInput.checked) {
+                    ctx.fillStyle = 'rgba(255, 230, 0, 0.9)'; 
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = 'black';
+                    ctx.shadowBlur = 3;
+                    ctx.fillText(i, shard.center.x, shard.center.y);
+                    ctx.shadowBlur = 0; 
+                }
+            });
+
+            // 7. Ghost Effect (Original limpo por cima)
+            if (currentOverlayOpacity > 0) {
+                ctx.save();
+                ctx.globalAlpha = currentOverlayOpacity;
+                ctx.drawImage(offscreenCanvas, 0, 0, width, height);
+                ctx.restore();
+            }
+
+            ctx.restore(); 
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        function takeSnapshot() {
+            const link = document.createElement('a');
+            link.download = `espelho-magico-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+    </script>
+</body>
+</html>
