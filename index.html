@@ -40,13 +40,8 @@
         #controls.hidden-panel {
             transform: translateX(120%);
             opacity: 0.5;
-            pointer-events: none; /* Evita cliques acidentais quando oculto */
+            pointer-events: none;
         }
-        /* Área de gatilho removida visualmente pois não usaremos hover */
-        #hoverTrigger {
-            display: none;
-        }
-        /* Scrollbar fina para o painel */
         #controls::-webkit-scrollbar {
             width: 6px;
         }
@@ -60,7 +55,7 @@
         }
         input[type=range] {
             width: 100%;
-            accent-color: #8b5cf6; /* Roxo Mágico */
+            accent-color: #8b5cf6;
             cursor: pointer;
         }
         label {
@@ -76,18 +71,16 @@
         button:active {
             transform: scale(0.95);
         }
-        /* Estado ativo para botões de fonte */
-        .source-btn.active {
+        .btn-toggle.active {
             background-color: #8b5cf6;
             border-color: #8b5cf6;
             color: white;
         }
-        .source-btn {
+        .btn-toggle {
             background-color: #374151;
             color: #d1d5db;
         }
 
-        /* Hidden video element for raw capture */
         #videoSource {
             display: none;
         }
@@ -123,11 +116,21 @@
         #toggleControls:hover {
             transform: scale(1.1);
         }
+        
+        .hidden-section {
+            display: none;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
-    <!-- Overlay de Início -->
     <div id="startOverlay">
         <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600" style="text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);">Espelho Mágico</h1>
         <p class="text-gray-300 mb-8 text-center max-w-md">Distorções temporais, prismas de luz e reflexos fragmentados.</p>
@@ -138,34 +141,26 @@
         <p id="errorMsg" class="text-red-500 mt-4 hidden">Erro ao inicializar.</p>
     </div>
 
-    <!-- Elementos de Processamento -->
     <video id="videoSource" autoplay playsinline></video>
     <canvas id="mainCanvas"></canvas>
 
-    <!-- Gatilho de Hover na Borda (Desativado) -->
-    <div id="hoverTrigger"></div>
-
-    <!-- Botão de Menu (Trigger Principal) -->
     <button id="toggleControls" class="absolute top-5 right-5 z-20 text-white bg-gray-800 p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-700 hidden shadow-lg border border-gray-600">
         <i class="fas fa-sliders-h"></i>
     </button>
 
-    <!-- Painel de Controles -->
     <div id="controls" class="hidden">
         <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
             <h2 class="font-bold text-lg text-purple-300"><i class="fas fa-wand-magic-sparkles mr-2"></i>Controles</h2>
-            <!-- Botão fechar mantido -->
             <button id="closeControls" class="text-gray-400 hover:text-white text-sm"><i class="fas fa-chevron-right"></i></button>
         </div>
 
-        <!-- Seção de Fonte -->
         <div class="mb-5">
             <label class="text-xs uppercase font-bold text-gray-500 mb-2 block">Fonte da Imagem</label>
             <div class="flex gap-2 mb-2">
-                <button id="btnCamera" class="source-btn active flex-1 py-2 rounded text-sm font-medium border border-gray-600">
+                <button id="btnCamera" class="btn-toggle active flex-1 py-2 rounded text-sm font-medium border border-gray-600">
                     <i class="fas fa-video mr-1"></i> Câmera
                 </button>
-                <button id="btnUpload" class="source-btn flex-1 py-2 rounded text-sm font-medium border border-gray-600">
+                <button id="btnUpload" class="btn-toggle flex-1 py-2 rounded text-sm font-medium border border-gray-600">
                     <i class="fas fa-image mr-1"></i> Upload
                 </button>
             </div>
@@ -178,7 +173,6 @@
             </div>
         </div>
 
-        <!-- Efeitos Ópticos -->
         <div class="mb-5 border-b border-gray-700 pb-4">
             <label class="text-xs uppercase font-bold text-purple-400 mb-2 block">Efeitos Ópticos</label>
             
@@ -201,19 +195,49 @@
             </div>
         </div>
 
-        <div class="slider-container">
-            <label>Tamanho dos Cacos <span id="shardSizeVal">150px</span></label>
-            <input type="range" id="shardSize" min="30" max="150" value="150" step="10">
+        <div class="mb-5 border-b border-gray-700 pb-4">
+            <label class="text-xs uppercase font-bold text-green-400 mb-2 block">Caleidoscópio</label>
+            <div class="slider-container">
+                <label>Fatias (0 = Desativado) <span id="kSegmentsVal" class="text-green-300 font-bold">Desativado</span></label>
+                <input type="range" id="kSegments" min="0" max="24" value="0" step="2" class="accent-green-500">
+            </div>
+
+            <div id="kaleidoExtras" class="hidden-section fade-in pl-2 border-l-2 border-green-800">
+                <div class="slider-container">
+                    <label>Velocidade Rotação <span id="kSpeedVal">0</span></label>
+                    <input type="range" id="kSpeed" min="-10" max="10" value="0" step="0.5" class="accent-green-500">
+                </div>
+
+                 <div class="slider-container">
+                    <label>Zoom <span id="kZoomVal">1.0x</span></label>
+                    <input type="range" id="kZoom" min="0.5" max="3" value="1.0" step="0.1" class="accent-green-500">
+                </div>
+            </div>
         </div>
 
-        <div class="slider-container">
-            <label>Intensidade da Quebra <span id="distortionVal">Alta</span></label>
-            <input type="range" id="distortion" min="0" max="100" value="40">
-        </div>
+        <div id="brokenControls" class="fade-in">
+            <label class="text-xs uppercase font-bold text-blue-400 mb-2 block">Ajustes Vidro</label>
+            <div class="slider-container">
+                <label>Tamanho dos Cacos <span id="shardSizeVal">150px</span></label>
+                <input type="range" id="shardSize" min="30" max="150" value="150" step="10">
+            </div>
 
-        <div class="slider-container">
-            <label>Espaçamento <span id="gapVal">0px</span></label>
-            <input type="range" id="gap" min="0" max="5" value="0" step="0.5">
+            <div class="slider-container">
+                <label>Intensidade da Quebra <span id="distortionVal">Alta</span></label>
+                <input type="range" id="distortion" min="0" max="100" value="40">
+            </div>
+
+            <div class="slider-container">
+                <label>Espaçamento <span id="gapVal">0px</span></label>
+                <input type="range" id="gap" min="0" max="5" value="0" step="0.5">
+            </div>
+            
+            <div class="mb-2">
+                <label class="flex items-center gap-2 cursor-pointer mt-2">
+                    <input type="checkbox" id="showIds" class="w-4 h-4 rounded accent-yellow-500">
+                    <span class="text-yellow-500 text-sm font-bold">Mostrar IDs</span>
+                </label>
+            </div>
         </div>
 
         <div class="slider-container border-t border-gray-700 pt-4 mt-2">
@@ -222,11 +246,6 @@
         </div>
         
         <div class="mb-4">
-            <label class="flex items-center gap-2 cursor-pointer mt-2">
-                <input type="checkbox" id="showIds" class="w-4 h-4 rounded accent-yellow-500">
-                <span class="text-yellow-500 text-sm font-bold">Mostrar IDs</span>
-            </label>
-
             <label class="flex items-center gap-2 cursor-pointer mt-2">
                 <input type="checkbox" id="mirrorMode" checked class="w-4 h-4 rounded accent-purple-500">
                 Modo Espelho
@@ -237,7 +256,7 @@
             </label>
         </div>
 
-        <button id="regenerateBtn" class="w-full bg-purple-700 hover:bg-purple-600 text-white py-2 rounded mt-2 text-sm font-semibold mb-2">
+        <button id="regenerateBtn" class="w-full bg-blue-700 hover:bg-blue-600 text-white py-2 rounded mt-2 text-sm font-semibold mb-2">
             <i class="fas fa-random mr-1"></i> Quebrar Novamente
         </button>
 
@@ -247,7 +266,6 @@
     </div>
 
     <script>
-        // Elementos DOM
         const video = document.getElementById('videoSource');
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -258,83 +276,80 @@
         const toggleControlsBtn = document.getElementById('toggleControls');
         const closeControlsBtn = document.getElementById('closeControls');
         const errorMsg = document.getElementById('errorMsg');
-        const hoverTrigger = document.getElementById('hoverTrigger');
+        
+        const kaleidoExtras = document.getElementById('kaleidoExtras');
+        const regenerateBtn = document.getElementById('regenerateBtn');
 
-        // Controles de Fonte
         const btnCamera = document.getElementById('btnCamera');
         const btnUpload = document.getElementById('btnUpload');
+        
         const imageInput = document.getElementById('imageInput');
         const fileNameDisplay = document.getElementById('fileNameDisplay');
         const cameraMixControl = document.getElementById('cameraMixControl');
         const cameraMixInput = document.getElementById('cameraMix');
 
-        // Inputs
         const rgbShiftInput = document.getElementById('rgbShift');
         const delayFramesInput = document.getElementById('delayFrames');
         const motionBlurInput = document.getElementById('motionBlur');
+        const overlayOpacityInput = document.getElementById('overlayOpacity'); 
+        const mirrorModeInput = document.getElementById('mirrorMode');
+        const bwModeInput = document.getElementById('bwMode');
+        
         const shardSizeInput = document.getElementById('shardSize');
         const distortionInput = document.getElementById('distortion');
         const gapInput = document.getElementById('gap');
-        const overlayOpacityInput = document.getElementById('overlayOpacity'); 
         const showIdsInput = document.getElementById('showIds'); 
-        const mirrorModeInput = document.getElementById('mirrorMode');
-        const bwModeInput = document.getElementById('bwMode');
-        const regenerateBtn = document.getElementById('regenerateBtn');
 
-        // Estado
+        const kSegmentsInput = document.getElementById('kSegments');
+        const kSpeedInput = document.getElementById('kSpeed');
+        const kZoomInput = document.getElementById('kZoom');
+
         let isRunning = false;
         let width = 0;
         let height = 0;
         let currentOverlayOpacity = 0;
         let currentCameraMix = 0.5;
         
-        // Estado da Fonte
         let sourceMode = 'camera'; 
         let uploadedImage = new Image();
         let isImageLoaded = false;
         
-        // Estado dos Cacos
         let shards = []; 
         let currentShardSize = 150; 
         let currentDistortion = 40;
         let currentGap = 0;
 
-        // Estado dos Efeitos
+        let kSegments = 0; 
+        let kSpeed = 0;
+        let kZoom = 1.0;
+        let kRotationAngle = 0;
+
         let rgbAmount = 0;
         let delayAmount = 0;
         let blurAmount = 0;
         
-        // Buffers para Efeitos
         const frameBuffer = []; 
         const maxBufferLength = 60; 
 
-        // Canvas offscreen
         const offscreenCanvas = document.createElement('canvas');
         const offCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+        
         const blurCanvas = document.createElement('canvas');
         const blurCtx = blurCanvas.getContext('2d', { willReadFrequently: true });
 
-        // --- SISTEMA DE MENU MANUAL (Toggle) ---
-        
+        const shatteredCanvas = document.createElement('canvas');
+        const shatteredCtx = shatteredCanvas.getContext('2d', { willReadFrequently: true });
+
         function toggleMenu() {
             controlsPanel.classList.toggle('hidden-panel');
         }
-
-        // Evento de Clique para o Botão do Menu
         toggleControlsBtn.addEventListener('click', toggleMenu);
+        closeControlsBtn.addEventListener('click', () => controlsPanel.classList.add('hidden-panel'));
 
-        // Botão Fechar manual (dentro do painel)
-        closeControlsBtn.addEventListener('click', () => {
-             controlsPanel.classList.add('hidden-panel');
-        });
-
-        // Event Listeners UI Base
         startBtn.addEventListener('click', initializeApp);
-
         document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
         regenerateBtn.addEventListener('click', () => generateShards(true));
 
-        // Listeners Efeitos
         rgbShiftInput.addEventListener('input', (e) => {
             rgbAmount = parseInt(e.target.value);
             document.getElementById('rgbVal').innerText = rgbAmount;
@@ -350,7 +365,27 @@
             document.getElementById('blurVal').innerText = e.target.value + '%';
         });
 
-        // Listeners Mix e Overlay
+        kSegmentsInput.addEventListener('input', (e) => {
+            kSegments = parseInt(e.target.value);
+            
+            if (kSegments > 0) {
+                document.getElementById('kSegmentsVal').innerText = kSegments + " Fatias";
+                kaleidoExtras.classList.remove('hidden-section');
+            } else {
+                document.getElementById('kSegmentsVal').innerText = "Desativado";
+                kaleidoExtras.classList.add('hidden-section');
+            }
+        });
+
+        kSpeedInput.addEventListener('input', (e) => {
+            kSpeed = parseFloat(e.target.value) * 0.01; 
+            document.getElementById('kSpeedVal').innerText = e.target.value;
+        });
+        kZoomInput.addEventListener('input', (e) => {
+            kZoom = parseFloat(e.target.value);
+            document.getElementById('kZoomVal').innerText = kZoom.toFixed(1) + 'x';
+        });
+
         overlayOpacityInput.addEventListener('input', (e) => {
             currentOverlayOpacity = parseInt(e.target.value) / 100;
             document.getElementById('overlayVal').innerText = e.target.value + '%';
@@ -361,7 +396,6 @@
             document.getElementById('camMixVal').innerText = e.target.value + '%';
         });
 
-        // Listeners de Fonte
         btnCamera.addEventListener('click', () => setSource('camera'));
         btnUpload.addEventListener('click', () => {
             imageInput.click();
@@ -399,7 +433,6 @@
             }
         }
 
-        // Atualização em tempo real
         shardSizeInput.addEventListener('change', (e) => { 
             currentShardSize = parseInt(e.target.value);
             document.getElementById('shardSizeVal').innerText = currentShardSize + 'px';
@@ -417,7 +450,6 @@
             document.getElementById('gapVal').innerText = currentGap + 'px';
         });
 
-        // Redimensionamento
         window.addEventListener('resize', () => {
             resizeCanvas();
             generateShards();
@@ -428,14 +460,17 @@
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
+            
             offscreenCanvas.width = width;
             offscreenCanvas.height = height;
             blurCanvas.width = width;
             blurCanvas.height = height;
+            shatteredCanvas.width = width;
+            shatteredCanvas.height = height;
+            
             frameBuffer.length = 0;
         }
 
-        // --- Lógica de Geração da Malha ---
         function generateShards(force = false) {
             if (!width || !height) return;
             shards = [];
@@ -485,7 +520,7 @@
             const centerY = height / 2;
             const dist = Math.sqrt(Math.pow(cx - centerX, 2) + Math.pow(cy - centerY, 2));
 
-            if (dist < mirrorRadius * 1.2) {
+            if (dist < mirrorRadius * 1.3) {
                 shards.push({
                     path: [p1, p2, p3],
                     center: {x: cx, y: cy},
@@ -503,7 +538,6 @@
             });
         }
 
-        // --- Câmera e Inicialização ---
         async function initializeApp() {
             startBtn.classList.add('hidden');
             loader.style.display = 'block';
@@ -537,14 +571,9 @@
         function startLoop() {
             loader.style.display = 'none';
             startOverlay.style.display = 'none';
-            
-            // Removendo 'hidden' (display: none) para que os elementos existam
             controlsPanel.classList.remove('hidden');
             toggleControlsBtn.classList.remove('hidden');
-
-            // Adicionando 'hidden-panel' para que o menu comece fechado (off-screen)
             controlsPanel.classList.add('hidden-panel');
-
             isRunning = true;
             resizeCanvas();
             generateShards();
@@ -665,61 +694,123 @@
             blurCtx.drawImage(displayFrame, 0, 0);
             blurCtx.globalAlpha = 1.0; 
 
-            ctx.fillStyle = '#050505';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.save();
-            ctx.beginPath();
-            const radius = Math.min(width, height) * 0.42;
-            ctx.arc(width/2, height/2, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 10;
-            ctx.stroke();
-            ctx.clip(); 
-            ctx.fillStyle = '#111';
-            ctx.fill();
-
+            shatteredCtx.clearRect(0, 0, width, height);
+            
             shards.forEach((shard, i) => {
-                ctx.save();
-                ctx.beginPath();
-                ctx.moveTo(shard.path[0].x, shard.path[0].y);
-                ctx.lineTo(shard.path[1].x, shard.path[1].y);
-                ctx.lineTo(shard.path[2].x, shard.path[2].y);
-                ctx.closePath();
-                ctx.clip();
+                shatteredCtx.save();
+                shatteredCtx.beginPath();
+                shatteredCtx.moveTo(shard.path[0].x, shard.path[0].y);
+                shatteredCtx.lineTo(shard.path[1].x, shard.path[1].y);
+                shatteredCtx.lineTo(shard.path[2].x, shard.path[2].y);
+                shatteredCtx.closePath();
+                shatteredCtx.clip();
 
                 const drawX = shard.offsetX;
                 const drawY = shard.offsetY;
 
-                ctx.drawImage(blurCanvas, -drawX, -drawY, width, height);
-                ctx.restore();
+                shatteredCtx.drawImage(blurCanvas, -drawX, -drawY, width, height);
+                shatteredCtx.restore();
 
                 if (currentGap > 0) {
-                    ctx.beginPath();
-                    ctx.moveTo(shard.path[0].x, shard.path[0].y);
-                    ctx.lineTo(shard.path[1].x, shard.path[1].y);
-                    ctx.lineTo(shard.path[2].x, shard.path[2].y);
-                    ctx.closePath();
-                    ctx.strokeStyle = 'rgba(10,10,10, 0.6)';
-                    ctx.lineWidth = currentGap;
-                    ctx.stroke();
+                    shatteredCtx.beginPath();
+                    shatteredCtx.moveTo(shard.path[0].x, shard.path[0].y);
+                    shatteredCtx.lineTo(shard.path[1].x, shard.path[1].y);
+                    shatteredCtx.lineTo(shard.path[2].x, shard.path[2].y);
+                    shatteredCtx.closePath();
+                    shatteredCtx.strokeStyle = 'rgba(10,10,10, 0.6)';
+                    shatteredCtx.lineWidth = currentGap;
+                    shatteredCtx.stroke();
                 }
                 
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+                shatteredCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+                shatteredCtx.lineWidth = 1;
+                shatteredCtx.stroke();
 
                 if (showIdsInput.checked) {
-                    ctx.fillStyle = 'rgba(255, 230, 0, 0.9)'; 
-                    ctx.font = 'bold 12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.shadowColor = 'black';
-                    ctx.shadowBlur = 3;
-                    ctx.fillText(i, shard.center.x, shard.center.y);
-                    ctx.shadowBlur = 0; 
+                    shatteredCtx.fillStyle = 'rgba(255, 230, 0, 0.9)'; 
+                    shatteredCtx.font = 'bold 12px Arial';
+                    shatteredCtx.textAlign = 'center';
+                    shatteredCtx.textBaseline = 'middle';
+                    shatteredCtx.fillText(i, shard.center.x, shard.center.y);
                 }
             });
+
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+
+            if (kSegments <= 0) {
+                ctx.save();
+                
+                ctx.beginPath();
+                const radius = Math.min(width, height) * 0.42;
+                ctx.arc(width/2, height/2, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+                ctx.clip(); 
+                
+                ctx.drawImage(shatteredCanvas, 0, 0);
+                
+                ctx.restore();
+
+            } else {
+                // Se a velocidade for 0, reseta a posição para o topo
+                if (kSpeed === 0) {
+                    kRotationAngle = 0;
+                }
+                
+                kRotationAngle += kSpeed; 
+                
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const mirrorRadius = Math.min(width, height) * 0.42;
+                const fillRadius = Math.max(width, height) * 0.8;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, mirrorRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+                ctx.clip(); 
+                ctx.fillStyle = '#000';
+                ctx.fill();
+
+                ctx.translate(centerX, centerY);
+                
+                // Correção chave para orientação vertical (90 graus)
+                ctx.rotate(kRotationAngle - Math.PI / 2);
+
+                const sliceAngle = (Math.PI * 2) / kSegments;
+
+                for (let i = 0; i < kSegments; i++) {
+                    ctx.save();
+                    
+                    // Rotação condicional para corrigir a "fatia preta" e o espelhamento
+                    const rotation = (i % 2 === 0) ? i * sliceAngle : (i + 1) * sliceAngle;
+                    ctx.rotate(rotation);
+                    
+                    if (i % 2 !== 0) {
+                        ctx.scale(1, -1);
+                    }
+
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    // Garante que o arco cubra toda a fatia, evitando gaps
+                    ctx.arc(0, 0, fillRadius, -0.01, sliceAngle + 0.01); 
+                    ctx.lineTo(0, 0);
+                    ctx.clip();
+
+                    ctx.rotate(Math.PI / 2); 
+                    ctx.scale(kZoom, kZoom);
+
+                    ctx.drawImage(shatteredCanvas, -centerX, -centerY, width, height);
+
+                    ctx.restore();
+                }
+                
+                ctx.restore();
+            }
 
             if (currentOverlayOpacity > 0) {
                 ctx.save();
@@ -727,8 +818,6 @@
                 ctx.drawImage(offscreenCanvas, 0, 0, width, height);
                 ctx.restore();
             }
-
-            ctx.restore(); 
 
             requestAnimationFrame(drawLoop);
         }
